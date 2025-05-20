@@ -3,7 +3,7 @@ import db
 from handlers.login import login_conv_handler
 from handlers.books import books_handler
 from handlers.logout import logout_handler
-from handlers.recommendation import recommendations_start, recommendations_conv_handler
+from handlers.recommendation import recommendations_conv_handler
 from handlers.register import register_conv_handler
 from handlers.my_books import my_books_conv_handler
 from handlers.profile import profile_handler
@@ -15,6 +15,7 @@ from handlers.register import start_register
 from handlers.my_books import my_books
 from handlers.profile import profile
 from handlers.createBooks import start_create_book, get_create_book_handler
+
 """
 from handlers.update_profile import update_profile_conv_handler
 """

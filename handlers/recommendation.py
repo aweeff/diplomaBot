@@ -1,6 +1,3 @@
-from handlers.categories import get_all_categories, update_user_preferences_api, get_user_current_preferences, \
-    get_all_books_api
-from state.session_store import sessions
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardRemove
 from telegram.ext import (
     CommandHandler,
@@ -11,9 +8,14 @@ from telegram.ext import (
     CallbackQueryHandler
 )
 
-SELECTING_GENRES, SHOWING_RECOMMENDATIONS = range(2)
+from handlers.categories import get_all_categories, update_user_preferences_api, get_user_current_preferences, \
+    get_all_books_api
+from handlers.getUserById import get_user_by_id
+from state.session_store import sessions
+
 # --- "My Recommendations" Conversation ---
 
+SELECTING_GENRES, SHOWING_RECOMMENDATIONS = range(2)
 RECOMMENDATIONS_MENU_TEXT = "📚 Мои Рекомендации"  # Assuming this is a button in your main menu
 
 
@@ -117,7 +119,7 @@ async def handle_genre_selection(update: Update, context: ContextTypes.DEFAULT_T
 
 
 async def show_recommendations(update: Update, context: ContextTypes.DEFAULT_TYPE, message_to_reply_to) -> int:
-    """Fetches and displays books based on saved preferences, including owner's name."""
+    """Fetches and displays books based on saved preferences."""
     user_id = update.effective_user.id
     session = sessions.get(user_id)
 
@@ -129,15 +131,12 @@ async def show_recommendations(update: Update, context: ContextTypes.DEFAULT_TYP
 
     user_prefs_obj = await get_user_current_preferences(cookies=session["cookies"])
     if not user_prefs_obj:
-        await message_to_reply_to.reply_text(
-            "⚠️ Не удалось загрузить ваши предпочтения. Попробуйте установить их снова.")
+        await message_to_reply_to.reply_text("⚠️ Не удалось загрузить ваши предпочтения. Попробуйте установить их снова.")
         return ConversationHandler.END
 
     preferred_category_ids = set(user_prefs_obj.keys())
-
     if not preferred_category_ids:
-        await message_to_reply_to.reply_text(
-            "Вы еще не выбрали предпочтительные жанры. Используйте команду /myrecommendations, чтобы задать их.")  # Or your chosen command/entry point
+        await message_to_reply_to.reply_text("Вы еще не выбрали предпочтительные жанры. Используйте команду /myrecommendations, чтобы задать их.")
         return ConversationHandler.END
 
     all_books = await get_all_books_api(cookies=session["cookies"])
@@ -145,11 +144,11 @@ async def show_recommendations(update: Update, context: ContextTypes.DEFAULT_TYP
         await message_to_reply_to.reply_text("⚠️ Не удалось загрузить список книг. Попробуйте позже.")
         return ConversationHandler.END
 
+    recommended_books = []
     if not all_books:
-        await message_to_reply_to.reply_text("❗️ На данный момент нет доступных книг в каталоge.")
+        await message_to_reply_to.reply_text("❗️ На данный момент нет доступных книг в каталоге.")
         return ConversationHandler.END
 
-    # Fetch all category details if not already in context for mapping preferred IDs to names
     all_categories_map_id_to_name = context.user_data.get('all_categories')
     if not all_categories_map_id_to_name:
         all_cats_from_api = await get_all_categories(cookies=session["cookies"])
@@ -157,48 +156,46 @@ async def show_recommendations(update: Update, context: ContextTypes.DEFAULT_TYP
             all_categories_map_id_to_name = {cat['_id']: cat['name'] for cat in all_cats_from_api}
         else:
             all_categories_map_id_to_name = {}
-            await message_to_reply_to.reply_text(
-                "⚠️ Не удалось загрузить детали категорий для фильтрации. Рекомендации могут быть неточными.")
 
-    recommended_books = []
-    preferred_category_names = {all_categories_map_id_to_name.get(pref_id) for pref_id in preferred_category_ids if
-                                all_categories_map_id_to_name.get(pref_id)}
+    preferred_category_names = {
+        all_categories_map_id_to_name.get(pref_id)
+        for pref_id in preferred_category_ids
+        if all_categories_map_id_to_name.get(pref_id)
+    }
 
     for book in all_books:
-        book_category_names = book.get("categories", [])  # Assuming this is a list of names from backend
+        book_category_names = book.get("categories", [])
         if any(cat_name in preferred_category_names for cat_name in book_category_names):
             recommended_books.append(book)
 
     if not recommended_books:
-        await message_to_reply_to.reply_text(
-            "😔 К сожалению, по вашим предпочтениям ничего не найдено. Попробуйте выбрать другие жанры.")
+        await message_to_reply_to.reply_text("😔 К сожалению, по вашим предпочтениям ничего не найдено.")
     else:
         await message_to_reply_to.reply_text(f"📚 Вот книги по вашим предпочтениям ({len(recommended_books)} шт.):")
-        # Ensure you have fetched all users if you want to display their Telegram username,
-        # or if the backend provides owner's full name.
-        # For now, assuming backend provides owner's full name directly in the book object.
-
-        for book in recommended_books[:5]:  # Limit to avoid spam
+        for book in recommended_books[:5]:
             title = book.get("title", "Без названия")
             author = book.get("author", "Автор неизвестен")
             categories_str = ", ".join(book.get("categories", []))
             price = book.get("price", "N/A")
             image_url = book.get("image")
 
-            owner_info = book.get("owner")  # Expecting this to be populated by the backend
-            owner_name_display = "Неизвестен"
-            if isinstance(owner_info, dict) and owner_info.get("fullName"):
-                owner_name_display = owner_info["fullName"]
-            elif isinstance(owner_info, str):  # Fallback if only ID is somehow sent
-                # You might want to fetch user details by ID here if needed and you have an endpoint
-                owner_name_display = f"ID: {owner_info[:6]}..."  # Placeholder for just ID
+            # 🔍 Get owner information
+            owner_id = book.get("owner")
+            owner_info = None
+            if owner_id:
+                try: # Assuming this exists
+                    owner_info = await get_user_by_id(owner_id, cookies=session["cookies"])
+                except Exception as e:
+                    print(f"Error fetching owner: {e}")
+
+            owner_name = owner_info.get("fullName") or owner_info.get("telegramId") if owner_info else "Неизвестен"
 
             message_text = (
                 f"📖 <b>{title}</b>\n"
                 f"✍️ Автор: {author}\n"
                 f"🏷 Жанры: {categories_str}\n"
                 f"💰 Цена: {price} у.е.\n"
-                f"👤 Владелец: {owner_name_display}"  # Added owner name
+                f"👤 Владелец: {owner_name}"
             )
             try:
                 if image_url:
@@ -207,15 +204,11 @@ async def show_recommendations(update: Update, context: ContextTypes.DEFAULT_TYP
                     await message_to_reply_to.reply_text(message_text, parse_mode="HTML")
             except Exception as e_send:
                 print(f"Error sending book message: {e_send}")
-                # Send a simplified message if photo fails or text is too long
-                simplified_text = f"📖 {title} от {author}\n👤 Владелец: {owner_name_display}"
-                await message_to_reply_to.reply_text(simplified_text)
+                await message_to_reply_to.reply_text(f"Не удалось отобразить книгу: {title} (ошибка)")
 
-    # Clean up context_user_data if the conversation is truly ending here
-    # context.user_data.pop('all_categories', None) # Keep if you want to reuse quickly
-    # context.user_data.pop('selected_category_ids_for_recommendation', None)
+    context.user_data.pop('all_categories', None)
+    context.user_data.pop('selected_category_ids_for_recommendation', None)
     return ConversationHandler.END
-
 
 async def recommendations_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Cancels the recommendation conversation."""
@@ -226,8 +219,8 @@ async def recommendations_cancel(update: Update, context: ContextTypes.DEFAULT_T
 
 
 recommendations_conv_handler = ConversationHandler(
-     entry_points=[CommandHandler("myrecommendations", recommendations_start)],
-     states={
+    entry_points=[CommandHandler("myrecommendations", recommendations_start)],
+    states={
          SELECTING_GENRES: [CallbackQueryHandler(handle_genre_selection)],
          # SHOWING_RECOMMENDATIONS is handled directly after "Done" or can be a separate state if needed
      },
@@ -236,17 +229,3 @@ recommendations_conv_handler = ConversationHandler(
          CallbackQueryHandler(handle_genre_selection, pattern="^rec_genre_cancel$") # handles cancel from inline
      ],
  )
-"""
-# Option 2: Trigger with a main menu button text
-recommendations_conv_handler = ConversationHandler(
-    entry_points=[
-        MessageHandler(filters.Regex(f"^{RECOMMENDATIONS_MENU_TEXT}$") & (~filters.COMMAND), recommendations_start)],
-    states={
-        SELECTING_GENRES: [CallbackQueryHandler(handle_genre_selection)],
-    },
-    fallbacks=[
-        CommandHandler("cancel", recommendations_cancel),
-        CallbackQueryHandler(handle_genre_selection, pattern="^rec_genre_cancel$")
-    ],
-)
-"""
