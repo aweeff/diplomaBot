@@ -9,7 +9,7 @@ from bot.utils.helpers import (
     format_book_message
 )
 from bot.keyboards import reply_keyboards
-from conversation_states import (
+from .conversation_states import (
     CREATE_BOOK_TITLE, CREATE_BOOK_DESC, CREATE_BOOK_AUTHOR, CREATE_BOOK_DATE,
     CREATE_BOOK_LANG, CREATE_BOOK_CATEGORIES, CREATE_BOOK_TYPE, CREATE_BOOK_PRICE,
     CREATE_BOOK_IMAGE,
@@ -21,6 +21,7 @@ from conversation_states import (
 from bot.handlers.menu import show_menu
 
 
+# --- Create Book Conversation ---
 async def start_create_book_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     if not await check_user_logged_in(update, context):
         return ConversationHandler.END
@@ -183,16 +184,19 @@ async def my_books_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         if len(full_message) > 4096:
             parts_to_send = []
             current_part = "Ваши книги (часть):\n"
-            for book_msg in message_parts[1:]:
-                if len(current_part) + len(book_msg) + 2 > 4096:
+            for book_idx, book_msg_content in enumerate(message_parts[1:]):
+                if len(current_part) + len(book_msg_content) + 2 > 4096:
                     parts_to_send.append(current_part)
-                    current_part = "Ваши книги (продолжение):\n" + book_msg
+                    current_part = "Ваши книги (продолжение):\n" + book_msg_content
+                elif book_idx == 0 and current_part == "Ваши книги (часть):\n":
+                     current_part += book_msg_content
                 else:
-                    current_part += "\n\n" + book_msg
+                    current_part += "\n\n" + book_msg_content
             parts_to_send.append(current_part)
 
-            for part in parts_to_send:
-                await update.message.reply_text(part, parse_mode="HTML", reply_markup=reply_keyboards.my_books_action_markup if part == parts_to_send[-1] else ReplyKeyboardRemove())
+            for i, part in enumerate(parts_to_send):
+                final_markup = reply_keyboards.my_books_action_markup if i == len(parts_to_send) -1 else ReplyKeyboardRemove()
+                await update.message.reply_text(part, parse_mode="HTML", reply_markup=final_markup)
         else:
             await update.message.reply_text(
                 full_message,
@@ -211,20 +215,17 @@ async def choose_action_handler(update: Update, context: ContextTypes.DEFAULT_TY
     context.user_data.pop('edit_mode', None)
     context.user_data.pop('delete_mode', None)
 
+    if choice in ["✏️ Редактировать", "🗑 Удалить"] and not context.user_data.get('my_books_cache'):
+         await update.message.reply_text("Список книг не загружен. Пожалуйста, сначала вызовите /mybooks.", reply_markup=ReplyKeyboardRemove())
+         await show_menu(update, context)
+         return ConversationHandler.END
+
     if choice == "✏️ Редактировать":
-        if not context.user_data.get('my_books_cache'):
-             await update.message.reply_text("Сначала нужно загрузить книги. Пожалуйста, используйте команду /mybooks снова.", reply_markup=ReplyKeyboardRemove())
-             await show_menu(update, context)
-             return ConversationHandler.END
         await update.message.reply_text("Введите номер книги из списка выше, которую хотите редактировать:",
                                         reply_markup=ReplyKeyboardRemove())
         context.user_data['edit_mode'] = True
         return MY_BOOKS_CHOOSE_BOOK_INDEX
     elif choice == "🗑 Удалить":
-        if not context.user_data.get('my_books_cache'):
-             await update.message.reply_text("Сначала нужно загрузить книги. Пожалуйста, используйте команду /mybooks снова.", reply_markup=ReplyKeyboardRemove())
-             await show_menu(update, context)
-             return ConversationHandler.END
         await update.message.reply_text("Введите номер книги из списка выше, которую хотите удалить:",
                                         reply_markup=ReplyKeyboardRemove())
         context.user_data['delete_mode'] = True

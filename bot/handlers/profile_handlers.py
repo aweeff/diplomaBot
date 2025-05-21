@@ -8,7 +8,7 @@ from bot.utils.helpers import (
     encode_image_to_base64
 )
 from bot.keyboards import reply_keyboards
-from conversation_states import PROFILE_WAITING_FOR_PIC
+from .conversation_states import PROFILE_WAITING_FOR_PIC
 from bot.handlers.menu import show_menu
 
 async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:

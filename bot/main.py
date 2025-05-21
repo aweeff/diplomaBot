@@ -76,7 +76,7 @@ def main():
             CREATE_BOOK_CATEGORIES: [MessageHandler(filters.TEXT & ~filters.COMMAND & ~filters.Regex(CANCEL_BOOK_CREATION_REGEX), categories_received_handler)],
             CREATE_BOOK_TYPE: [MessageHandler(filters.TEXT & ~filters.COMMAND & ~filters.Regex(CANCEL_BOOK_CREATION_REGEX), type_received_handler)],
             CREATE_BOOK_PRICE: [MessageHandler(filters.TEXT & ~filters.COMMAND & ~filters.Regex(CANCEL_BOOK_CREATION_REGEX), price_received_handler)],
-            CREATE_BOOK_IMAGE: [MessageHandler(filters.PHOTO, image_received_handler)], # Текст отмены будет обработан fallback'ом
+            CREATE_BOOK_IMAGE: [MessageHandler(filters.PHOTO, image_received_handler)],
         },
         fallbacks=[
             CommandHandler("cancel", cancel_create_book_handler),
@@ -94,15 +94,15 @@ def main():
             MY_BOOKS_CHOOSE_BOOK_INDEX: [MessageHandler(filters.TEXT & ~filters.COMMAND & ~filters.Regex("^❌ Отмена$"), choose_book_index_handler)],
             MY_BOOKS_CONFIRM_DELETE: [
                 MessageHandler(filters.Regex("^(да|нет|yes|no|Да|Нет)$"), confirm_delete_handler)],
-            MY_BOOKS_EDIT_TITLE: [MessageHandler(filters.TEXT & ~filters.COMMAND & ~filters.Regex("^❌ Отмена$"), universal_edit_field_handler), CommandHandler("skip", skip_edit_field_handler)],
-            MY_BOOKS_EDIT_DESCRIPTION: [MessageHandler(filters.TEXT & ~filters.COMMAND & ~filters.Regex("^❌ Отмена$"), universal_edit_field_handler), CommandHandler("skip", skip_edit_field_handler)],
-            MY_BOOKS_EDIT_AUTHOR: [MessageHandler(filters.TEXT & ~filters.COMMAND & ~filters.Regex("^❌ Отмена$"), universal_edit_field_handler), CommandHandler("skip", skip_edit_field_handler)],
-            MY_BOOKS_EDIT_DATE: [MessageHandler(filters.TEXT & ~filters.COMMAND & ~filters.Regex("^❌ Отмена$"), universal_edit_field_handler), CommandHandler("skip", skip_edit_field_handler)],
-            MY_BOOKS_EDIT_LANGUAGE: [MessageHandler(filters.TEXT & ~filters.COMMAND & ~filters.Regex("^❌ Отмена$"), universal_edit_field_handler), CommandHandler("skip", skip_edit_field_handler)],
-            MY_BOOKS_EDIT_CATEGORIES: [MessageHandler(filters.TEXT & ~filters.COMMAND & ~filters.Regex("^❌ Отмена$"), universal_edit_field_handler), CommandHandler("skip", skip_edit_field_handler)],
-            MY_BOOKS_EDIT_IMAGE: [MessageHandler(filters.TEXT & ~filters.COMMAND & ~filters.Regex("^❌ Отмена$"), universal_edit_field_handler), CommandHandler("skip", skip_edit_field_handler)], # filters.TEXT, так как ожидается URL или 'none'
-            MY_BOOKS_EDIT_TYPE: [MessageHandler(filters.TEXT & ~filters.COMMAND & ~filters.Regex("^❌ Отмена$"), universal_edit_field_handler), CommandHandler("skip", skip_edit_field_handler)],
-            MY_BOOKS_EDIT_PRICE: [MessageHandler(filters.TEXT & ~filters.COMMAND & ~filters.Regex("^❌ Отмена$"), universal_edit_field_handler), CommandHandler("skip", skip_edit_field_handler)],
+            MY_BOOKS_EDIT_TITLE: [MessageHandler(filters.TEXT & ~filters.COMMAND & ~filters.Regex("^❌ Отмена$") & ~filters.Regex(CANCEL_BOOK_CREATION_REGEX), universal_edit_field_handler), CommandHandler("skip", skip_edit_field_handler)],
+            MY_BOOKS_EDIT_DESCRIPTION: [MessageHandler(filters.TEXT & ~filters.COMMAND & ~filters.Regex("^❌ Отмена$") & ~filters.Regex(CANCEL_BOOK_CREATION_REGEX), universal_edit_field_handler), CommandHandler("skip", skip_edit_field_handler)],
+            MY_BOOKS_EDIT_AUTHOR: [MessageHandler(filters.TEXT & ~filters.COMMAND & ~filters.Regex("^❌ Отмена$") & ~filters.Regex(CANCEL_BOOK_CREATION_REGEX), universal_edit_field_handler), CommandHandler("skip", skip_edit_field_handler)],
+            MY_BOOKS_EDIT_DATE: [MessageHandler(filters.TEXT & ~filters.COMMAND & ~filters.Regex("^❌ Отмена$") & ~filters.Regex(CANCEL_BOOK_CREATION_REGEX), universal_edit_field_handler), CommandHandler("skip", skip_edit_field_handler)],
+            MY_BOOKS_EDIT_LANGUAGE: [MessageHandler(filters.TEXT & ~filters.COMMAND & ~filters.Regex("^❌ Отмена$") & ~filters.Regex(CANCEL_BOOK_CREATION_REGEX), universal_edit_field_handler), CommandHandler("skip", skip_edit_field_handler)],
+            MY_BOOKS_EDIT_CATEGORIES: [MessageHandler(filters.TEXT & ~filters.COMMAND & ~filters.Regex("^❌ Отмена$") & ~filters.Regex(CANCEL_BOOK_CREATION_REGEX), universal_edit_field_handler), CommandHandler("skip", skip_edit_field_handler)],
+            MY_BOOKS_EDIT_IMAGE: [MessageHandler(filters.TEXT & ~filters.COMMAND & ~filters.Regex("^❌ Отмена$") & ~filters.Regex(CANCEL_BOOK_CREATION_REGEX), universal_edit_field_handler), CommandHandler("skip", skip_edit_field_handler)],
+            MY_BOOKS_EDIT_TYPE: [MessageHandler(filters.TEXT & ~filters.COMMAND & ~filters.Regex("^❌ Отмена$") & ~filters.Regex(CANCEL_BOOK_CREATION_REGEX), universal_edit_field_handler), CommandHandler("skip", skip_edit_field_handler)],
+            MY_BOOKS_EDIT_PRICE: [MessageHandler(filters.TEXT & ~filters.COMMAND & ~filters.Regex("^❌ Отмена$") & ~filters.Regex(CANCEL_BOOK_CREATION_REGEX), universal_edit_field_handler), CommandHandler("skip", skip_edit_field_handler)],
         },
         fallbacks=[CommandHandler("cancel", cancel_my_books_action),
                    MessageHandler(filters.Regex("^❌ Отмена$"), cancel_my_books_action)

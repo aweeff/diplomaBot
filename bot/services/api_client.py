@@ -23,8 +23,6 @@ def _make_request(method: str, endpoint: str, cookies: Optional[Dict] = None, js
     except Exception as e:
         return {"success": False, "error": f"An unexpected error occurred: {str(e)}"}
 
-
-
 def login_user(email: str, password: str) -> Dict[str, Any]:
     try:
         s = requests.Session()
@@ -37,7 +35,7 @@ def login_user(email: str, password: str) -> Dict[str, Any]:
             error_details = http_err.response.json()
             error_message = error_details.get("message", str(http_err.response.text))
         except ValueError:
-            error_message = str(http_err.response.text if http_err.response.text else http_err)
+            error_message = str(http_err.response.text if http_err.response.text else http_err) 
         return {"success": False, "error": error_message, "status_code": http_err.response.status_code if http_err.response else None}
     except requests.exceptions.RequestException as e:
         return {"success": False, "error": str(e)}
@@ -60,15 +58,34 @@ def register_user(full_name: str, email: str, password: str) -> Dict[str, Any]:
     except requests.exceptions.RequestException as e:
         return {"success": False, "error": str(e)}
 
+
 def logout_user(cookies: Dict) -> Dict[str, Any]:
     return _make_request("POST", "/api/auth/logout", cookies=cookies)
 
 def check_auth_status(cookies: Dict) -> Dict[str, Any]:
     return _make_request("GET", "/api/auth/check", cookies=cookies)
 
-
 def update_user_profile(cookies: Dict, profile_data: Dict) -> Dict[str, Any]:
     return _make_request("PUT", "/api/auth/update-profile", cookies=cookies, json_data=profile_data)
+
+# --- Books ---
+def get_all_books(cookies: Optional[Dict] = None) -> Dict[str, Any]:
+    return _make_request("GET", "/api/books", cookies=cookies)
+
+def get_my_books(cookies: Dict) -> Dict[str, Any]:
+    return _make_request("GET", "/api/books/my-books", cookies=cookies)
+
+def create_book(cookies: Dict, book_data: Dict) -> Dict[str, Any]:
+    return _make_request("POST", "/api/books/create", cookies=cookies, json_data=book_data)
+
+def update_book(cookies: Dict, book_id: str, book_data: Dict) -> Dict[str, Any]:
+    return _make_request("PUT", f"/api/books/update/{book_id}", cookies=cookies, json_data=book_data)
+
+def delete_book(cookies: Dict, book_id: str) -> Dict[str, Any]:
+    return _make_request("DELETE", f"/api/books/{book_id}", cookies=cookies)
+
+def get_all_categories(cookies: Dict) -> Dict[str, Any]:
+    return _make_request("GET", "/api/books/categories", cookies=cookies)
 
 def update_user_preferences(cookies: Dict, category_ids: List[str]) -> Dict[str, Any]:
     return _make_request("POST", "/api/auth/update-preferences", cookies=cookies, json_data={"preferences": category_ids})
@@ -79,8 +96,10 @@ def get_user_current_preferences(cookies: Dict) -> Dict[str, Any]:
         return {"success": True, "data": auth_status["data"].get("preferences")}
     return {"success": False, "error": auth_status.get("error", "Could not fetch user preferences")}
 
+
+# --- User ---
 async def get_user_by_id_async(owner_id: str, cookies: dict):
-    import aiohttp
+    import aiohttp # Local import for async function
     try:
         url = f"{BACKEND_URL}/api/user/{owner_id}"
         async with aiohttp.ClientSession(cookies=cookies) as session:
@@ -92,24 +111,3 @@ async def get_user_by_id_async(owner_id: str, cookies: dict):
                 return {"success": True, "data": data}
     except Exception as e:
         return {"success": False, "error": f"[get_user_by_id_async] Exception: {e}"}
-
-
-
-def get_all_books(cookies: Optional[Dict] = None) -> Dict[str, Any]:
-    return _make_request("GET", "/api/books", cookies=cookies)
-
-def get_my_books(cookies: Dict) -> Dict[str, Any]:
-    return _make_request("GET", "/api/books/my-books", cookies=cookies)
-
-def create_book(cookies: Dict, book_data: Dict) -> Dict[str, Any]:
-    return _make_request("POST", "/api/books/create", cookies=cookies, json_data=book_data)
-
-def update_book(cookies: Dict, book_id: str, book_data: Dict) -> Dict[str, Any]:
-    return _make_request("POST", f"/api/books/update/{book_id}", cookies=cookies, json_data=book_data)
-
-def delete_book(cookies: Dict, book_id: str) -> Dict[str, Any]:
-    return _make_request("DELETE", f"/api/books/{book_id}", cookies=cookies)
-
-def get_all_categories(cookies: Dict) -> Dict[str, Any]:
-    return _make_request("GET", "/api/books/categories", cookies=cookies)
-

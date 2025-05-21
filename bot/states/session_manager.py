@@ -1,4 +1,4 @@
-sessions = {}
+sessions: dict = {}
 
 def get_session(user_id):
     return sessions.get(user_id)
@@ -23,3 +23,6 @@ def clear_entire_session(user_id):
 
 def get_cookies(user_id):
     return get_session_data(user_id, "cookies")
+
+def get_user(user_id):
+    return get_session_data(user_id, "user")

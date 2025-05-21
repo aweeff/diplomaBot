@@ -4,7 +4,8 @@ from bot.keyboards import reply_keyboards, inline_keyboards
 from bot.services import api_client
 from bot.states import session_manager
 from bot.utils.helpers import check_user_logged_in, handle_api_error, format_book_message
-from conversation_states import RECOMMENDATIONS_SELECTING_GENRES
+from .conversation_states import RECOMMENDATIONS_SELECTING_GENRES
+from bot.handlers.menu import show_menu
 
 
 async def list_all_books_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -24,13 +25,11 @@ async def list_all_books_command(update: Update, context: ContextTypes.DEFAULT_T
         for book in books[:5]:
             owner_name_display = "Неизвестен"
             owner_id = book.get("owner")
-
             if owner_id and cookies:
                 owner_info_res = await api_client.get_user_by_id_async(owner_id, cookies=cookies)
                 if owner_info_res.get("success") and owner_info_res.get("data"):
                     owner_data = owner_info_res.get("data")
-                    owner_name_display = owner_data.get("fullName") or owner_data.get("telegramId",
-                                                                                      "Владелец")
+                    owner_name_display = owner_data.get("fullName") or owner_data.get("telegramId", "Владелец")
 
             message_text = format_book_message(book, owner_name=owner_name_display)
             image_url = book.get("image")
@@ -48,8 +47,7 @@ async def list_all_books_command(update: Update, context: ContextTypes.DEFAULT_T
 
 async def recommendations_start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     user_id = update.effective_user.id
-    if not await check_user_logged_in(update,
-                                      context):
+    if not await check_user_logged_in(update, context):
         return ConversationHandler.END
 
     cookies = session_manager.get_cookies(user_id)
@@ -143,8 +141,7 @@ async def handle_genre_selection_callback(update: Update, context: ContextTypes.
 
         if update_prefs_result.get("success"):
             await query.message.reply_text("✅ Ваши предпочтения по жанрам сохранены!")
-            return await show_recommendations_after_selection(query.message, context,
-                                                              cookies)
+            return await show_recommendations_after_selection(query.message, context, cookies)
         else:
             await handle_api_error(query.message, update_prefs_result, "⚠️ Не удалось сохранить предпочтения.")
             context.user_data.pop('all_categories_map', None)
@@ -155,6 +152,8 @@ async def handle_genre_selection_callback(update: Update, context: ContextTypes.
         await query.edit_message_text("❌ Выбор жанров отменен.")
         context.user_data.pop('all_categories_map', None)
         context.user_data.pop('selected_rec_category_ids', None)
+        await query.message.reply_text("Введите /menu для возврата в главное меню.",
+                                       reply_markup=reply_keyboards.logged_in_menu_markup if cookies else reply_keyboards.guest_menu_markup)
         return ConversationHandler.END
 
     elif callback_data.startswith("rec_genre_"):
@@ -301,6 +300,3 @@ async def recommendations_cancel_action(update: Update, context: ContextTypes.DE
     context.user_data.pop('all_categories_map', None)
     context.user_data.pop('selected_rec_category_ids', None)
     return ConversationHandler.END
-
-
-from bot.handlers.menu import show_menu
