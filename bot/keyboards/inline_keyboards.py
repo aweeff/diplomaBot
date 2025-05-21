@@ -1,5 +1,5 @@
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
-from typing import List, Dict, Set
+from typing import Dict, Set
 
 def create_genre_selection_keyboard(all_categories: Dict[str, str], selected_ids: Set[str]) -> InlineKeyboardMarkup:
     keyboard_buttons = []
