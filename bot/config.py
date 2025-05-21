@@ -1,2 +1,0 @@
-TELEGRAM_TOKEN = "7733922240:AAHe9FogiNqaULNsN7is_EUFmXehq5iV-_c"
-BACKEND_URL = "http://localhost:5001"
