@@ -8,7 +8,7 @@ from bot.utils.helpers import (
     encode_image_to_base64,
     format_book_message
 )
-from bot.keyboards import reply_keyboards
+from bot.keyboards import reply_keyboards, inline_keyboards
 from .conversation_states import (
     CREATE_BOOK_TITLE, CREATE_BOOK_DESC, CREATE_BOOK_AUTHOR, CREATE_BOOK_DATE,
     CREATE_BOOK_LANG, CREATE_BOOK_CATEGORIES, CREATE_BOOK_TYPE, CREATE_BOOK_PRICE,
@@ -16,12 +16,11 @@ from .conversation_states import (
     MY_BOOKS_CHOOSE_ACTION, MY_BOOKS_CHOOSE_BOOK_INDEX, MY_BOOKS_CONFIRM_DELETE,
     MY_BOOKS_EDIT_TITLE, MY_BOOKS_EDIT_DESCRIPTION, MY_BOOKS_EDIT_AUTHOR,
     MY_BOOKS_EDIT_DATE, MY_BOOKS_EDIT_LANGUAGE, MY_BOOKS_EDIT_CATEGORIES,
-    MY_BOOKS_EDIT_IMAGE, MY_BOOKS_EDIT_TYPE, MY_BOOKS_EDIT_PRICE
+    MY_BOOKS_EDIT_IMAGE, MY_BOOKS_EDIT_TYPE, MY_BOOKS_EDIT_PRICE, MY_BOOKS_Browse
 )
 from bot.handlers.menu import show_menu
 
 
-# --- Create Book Conversation ---
 async def start_create_book_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     if not await check_user_logged_in(update, context):
         return ConversationHandler.END
@@ -445,7 +444,6 @@ async def save_edited_book_handler(update: Update, context: ContextTypes.DEFAULT
     context.user_data.clear()
     await show_menu(update, context)
     return ConversationHandler.END
-
 
 async def cancel_my_books_action(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     context.user_data.clear()

@@ -41,10 +41,36 @@ def login_user(email: str, password: str) -> Dict[str, Any]:
         return {"success": False, "error": str(e)}
 
 
-def register_user(full_name: str, email: str, password: str) -> Dict[str, Any]:
+def register_user(
+        full_name: str,
+        email: str,
+        password: str,
+        telegram_id: Optional[str] = None,  # This parameter will now receive the username (or None)
+        country: Optional[str] = None,
+        city: Optional[str] = None,
+        preferences: Optional[List[str]] = None
+) -> Dict[str, Any]:
     try:
         s = requests.Session()
-        response = s.post(f"{BACKEND_URL}/api/auth/signup", json={"fullName": full_name, "email": email, "password": password})
+        payload = {
+            "fullName": full_name,
+            "email": email,
+            "password": password
+        }
+        # If telegram_id (now holding the username) is not None and not an empty string,
+        # it will be added to the payload with the key "telegramId".
+        # Usernames are already strings. If None, it's correctly skipped.
+        if telegram_id:
+            payload["telegramId"] = telegram_id
+
+        if country:
+            payload["country"] = country
+        if city:
+            payload["city"] = city
+
+        payload["preferences"] = preferences if preferences is not None else []
+
+        response = s.post(f"{BACKEND_URL}/api/auth/signup", json=payload)
         response.raise_for_status()
         return {"success": True, "data": response.json(), "cookies": s.cookies.get_dict()}
     except requests.exceptions.HTTPError as http_err:
@@ -53,8 +79,9 @@ def register_user(full_name: str, email: str, password: str) -> Dict[str, Any]:
             error_details = http_err.response.json()
             error_message = error_details.get("message", str(http_err.response.text))
         except ValueError:
-             error_message = str(http_err.response.text if http_err.response.text else http_err)
-        return {"success": False, "error": error_message, "status_code": http_err.response.status_code if http_err.response else None}
+            error_message = str(http_err.response.text if http_err.response.text else http_err)
+        return {"success": False, "error": error_message,
+                "status_code": http_err.response.status_code if http_err.response else None}
     except requests.exceptions.RequestException as e:
         return {"success": False, "error": str(e)}
 
@@ -79,7 +106,7 @@ def create_book(cookies: Dict, book_data: Dict) -> Dict[str, Any]:
     return _make_request("POST", "/api/books/create", cookies=cookies, json_data=book_data)
 
 def update_book(cookies: Dict, book_id: str, book_data: Dict) -> Dict[str, Any]:
-    return _make_request("PUT", f"/api/books/update/{book_id}", cookies=cookies, json_data=book_data)
+    return _make_request("POST", f"/api/books/update/{book_id}", cookies=cookies, json_data=book_data)
 
 def delete_book(cookies: Dict, book_id: str) -> Dict[str, Any]:
     return _make_request("DELETE", f"/api/books/{book_id}", cookies=cookies)

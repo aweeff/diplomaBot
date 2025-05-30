@@ -1,3 +1,5 @@
+import re
+
 from telegram.ext import (
     ApplicationBuilder, MessageHandler, CommandHandler, filters,
     ConversationHandler, CallbackQueryHandler
@@ -17,7 +19,7 @@ from bot.handlers.book_handlers import (
     categories_received_handler, type_received_handler, price_received_handler,
     image_received_handler, cancel_create_book_handler
 )
-from bot.handlers import general_handlers, auth_handlers, profile_handlers
+from bot.handlers import general_handlers, auth_handlers, profile_handlers, book_handlers
 
 from bot.handlers.conversation_states import (
     LOGIN_EMAIL, LOGIN_PASSWORD,
@@ -26,7 +28,8 @@ from bot.handlers.conversation_states import (
     CREATE_BOOK_LANG, CREATE_BOOK_CATEGORIES, CREATE_BOOK_TYPE, CREATE_BOOK_PRICE,
     CREATE_BOOK_IMAGE,
     PROFILE_WAITING_FOR_PIC,
-    RECOMMENDATIONS_SELECTING_GENRES
+    RECOMMENDATIONS_SELECTING_GENRES, REGISTER_COUNTRY, REGISTER_CITY, MY_BOOKS_Browse, ALL_BOOKS_PAGINATING,
+    RECOMMENDATIONS_PAGINATING
 )
 
 from bot.handlers.conversation_states import (
@@ -36,13 +39,13 @@ from bot.handlers.conversation_states import (
     MY_BOOKS_EDIT_IMAGE, MY_BOOKS_EDIT_TYPE, MY_BOOKS_EDIT_PRICE
 )
 
+
 def main():
     app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
 
     CANCEL_BOOK_CREATION_TEXT = "❌ Отменить создание книги"
     CANCEL_BOOK_CREATION_REGEX = f"^{CANCEL_BOOK_CREATION_TEXT}$"
-
-
+    
     login_conv = ConversationHandler(
         entry_points=[MessageHandler(filters.Regex(f"^🔓 Войти$"), auth_handlers.start_login_command),
                       CommandHandler("login", auth_handlers.start_login_command)],
@@ -57,9 +60,20 @@ def main():
         entry_points=[MessageHandler(filters.Regex(f"^📝 Регистрация$"), auth_handlers.start_register_command),
                       CommandHandler("register", auth_handlers.start_register_command)],
         states={
-            REGISTER_FULL_NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, auth_handlers.received_fullname_register)],
+            REGISTER_FULL_NAME: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, auth_handlers.received_fullname_register)],
             REGISTER_EMAIL: [MessageHandler(filters.TEXT & ~filters.COMMAND, auth_handlers.received_email_register)],
-            REGISTER_PASSWORD: [MessageHandler(filters.TEXT & ~filters.COMMAND, auth_handlers.received_password_register)],
+            REGISTER_PASSWORD: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, auth_handlers.received_password_register)],
+            REGISTER_COUNTRY: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, auth_handlers.received_country_register),
+                CommandHandler("skip", auth_handlers.received_country_register)
+                # Allow /skip command to also trigger it
+            ],
+            REGISTER_CITY: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, auth_handlers.received_city_register),
+                CommandHandler("skip", auth_handlers.received_city_register)  # Allow /skip command to also trigger it
+            ],
         },
         fallbacks=[CommandHandler("cancel", auth_handlers.cancel_register)],
     )
@@ -105,7 +119,8 @@ def main():
             MY_BOOKS_EDIT_PRICE: [MessageHandler(filters.TEXT & ~filters.COMMAND & ~filters.Regex("^❌ Отмена$") & ~filters.Regex(CANCEL_BOOK_CREATION_REGEX), universal_edit_field_handler), CommandHandler("skip", skip_edit_field_handler)],
         },
         fallbacks=[CommandHandler("cancel", cancel_my_books_action),
-                   MessageHandler(filters.Regex("^❌ Отмена$"), cancel_my_books_action)
+                   MessageHandler(filters.Regex("^❌ Отмена$"), cancel_my_books_action),
+                   MessageHandler(filters.Regex(CANCEL_BOOK_CREATION_REGEX), cancel_my_books_action)
                    ],
     )
 
@@ -123,18 +138,26 @@ def main():
     )
 
     recommendations_conv = ConversationHandler(
-        entry_points=[MessageHandler(filters.Regex(f"^💡 (Рекомендации книг|Мои рекомендации)$"), general_handlers.recommendations_start_command),
-                      CommandHandler("myrecommendations", general_handlers.recommendations_start_command),
-                      CommandHandler("recommendations", general_handlers.recommendations_start_command)
-                      ],
+        entry_points=[
+            MessageHandler(filters.Regex(f"^💡 (Рекомендации книг|Мои рекомендации)$"),
+                           general_handlers.recommendations_start_command),
+            CommandHandler("myrecommendations", general_handlers.recommendations_start_command),
+            CommandHandler("recommendations", general_handlers.recommendations_start_command)
+        ],
         states={
-            RECOMMENDATIONS_SELECTING_GENRES: [CallbackQueryHandler(general_handlers.handle_genre_selection_callback)],
+            RECOMMENDATIONS_SELECTING_GENRES: [
+                CallbackQueryHandler(general_handlers.handle_genre_selection_callback)
+                # This now transitions to show_recommendations_entry
+            ],
         },
         fallbacks=[
             CommandHandler("cancel", general_handlers.recommendations_cancel_action),
-            CallbackQueryHandler(general_handlers.handle_genre_selection_callback, pattern="^rec_genre_cancel$")
+            # General cancel for the whole flow
+            # This specific callback pattern is for canceling during genre selection using its inline button
+            CallbackQueryHandler(general_handlers.recommendations_cancel_action, pattern="^rec_genre_cancel$")
         ],
     )
+    app.add_handler(recommendations_conv)
 
     app.add_handler(login_conv)
     app.add_handler(register_conv)
@@ -152,6 +175,7 @@ def main():
     app.add_handler(CommandHandler("start", show_main_menu_command))
     app.add_handler(MessageHandler(filters.Regex("(?i)^(menu|меню)$"), show_main_menu_command))
     app.add_handler(CommandHandler("menu", show_main_menu_command))
+
 
 
     print("Бот запущен и принимает сообщения...")

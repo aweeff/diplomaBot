@@ -30,8 +30,8 @@ CREATE_BOOK_CANCEL_LAYOUT = [
 ]
 create_book_cancel_markup = ReplyKeyboardMarkup(CREATE_BOOK_CANCEL_LAYOUT, resize_keyboard=True, one_time_keyboard=True)
 
-
 POSSIBLE_MAIN_MENU_COMMANDS = {
     "📚 Все книги", "💡 Рекомендации книг", "🔓 Войти", "📝 Регистрация",
     "📖 Мои книги", "➕ Добавить новую книгу", "💡 Мои рекомендации", "👤 Мой профиль", "🚪 Выйти"
 }
+

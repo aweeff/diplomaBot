@@ -9,3 +9,4 @@ def create_genre_selection_keyboard(all_categories: Dict[str, str], selected_ids
     keyboard_buttons.append([InlineKeyboardButton("✅ Готово", callback_data="rec_genre_done")])
     keyboard_buttons.append([InlineKeyboardButton("❌ Отмена", callback_data="rec_genre_cancel")])
     return InlineKeyboardMarkup(keyboard_buttons)
+
