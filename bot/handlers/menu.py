@@ -36,4 +36,9 @@ async def show_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         greeting_message = f"Добро пожаловать, {user_name}!\n\n{command_list_text}"
 
-    await update.message.reply_text(greeting_message, reply_markup=menu_markup, parse_mode="HTML")
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text=greeting_message,
+        reply_markup=menu_markup,
+        parse_mode="HTML"
+    )
